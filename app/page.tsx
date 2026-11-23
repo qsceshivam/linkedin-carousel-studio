@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { Wand2, Eye } from 'lucide-react';
 import { CarouselData, Slide, ThemeId, CreatorProfile } from '@/types/carousel';
 import { INITIAL_CAROUSEL } from '@/lib/sample-data';
 import { THEMES, DEFAULT_THEME_ID } from '@/lib/themes';
@@ -20,6 +21,7 @@ export default function Home() {
   const [slideCount, setSlideCount] = useState<number>(7);
   const [apiKey, setApiKey] = useState<string>('');
   const [isPro, setIsPro] = useState<boolean>(false);
+  const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
 
   // Loading & Export States
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -148,6 +150,8 @@ export default function Home() {
           slides: data.slides,
         }));
 
+        setMobileTab('preview');
+
         confetti({
           particleCount: 50,
           spread: 60,
@@ -224,10 +228,42 @@ export default function Home() {
         hasCustomKey={Boolean(apiKey)}
       />
 
+      {/* Mobile Tab Switcher (Visible only on mobile screens) */}
+      <div className="lg:hidden mx-auto w-full max-w-7xl px-3 pt-3">
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-900 border border-slate-800 p-1 shadow-sm">
+          <button
+            onClick={() => setMobileTab('editor')}
+            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${
+              mobileTab === 'editor'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Wand2 className="h-3.5 w-3.5" />
+            <span>Editor Controls</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('preview')}
+            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${
+              mobileTab === 'preview'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span>Live Preview ({carousel.slides.length})</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Studio Body */}
-      <main className="mx-auto flex flex-1 w-full max-w-7xl flex-col lg:flex-row gap-6 p-4 sm:p-6 overflow-hidden">
+      <main className="mx-auto flex flex-1 w-full max-w-7xl flex-col lg:flex-row gap-6 p-3 sm:p-6 overflow-hidden">
         {/* Left Side: Editor & Controls Panel */}
-        <section className="w-full lg:w-[420px] shrink-0 h-[650px] lg:h-[calc(100vh-6.5rem)]">
+        <section
+          className={`w-full lg:w-[420px] shrink-0 h-[650px] lg:h-[calc(100vh-6.5rem)] ${
+            mobileTab === 'editor' ? 'block' : 'hidden lg:block'
+          }`}
+        >
           <EditorControls
             topic={carousel.topic}
             onTopicChange={(topic) => setCarousel((prev) => ({ ...prev, topic }))}
@@ -248,7 +284,11 @@ export default function Home() {
         </section>
 
         {/* Right Side: Interactive Live 4:5 Slide Preview */}
-        <section className="flex-1 h-[650px] lg:h-[calc(100vh-6.5rem)] overflow-hidden">
+        <section
+          className={`flex-1 h-[650px] lg:h-[calc(100vh-6.5rem)] overflow-hidden ${
+            mobileTab === 'preview' ? 'block' : 'hidden lg:block'
+          }`}
+        >
           <CarouselPreview
             slides={carousel.slides}
             theme={activeTheme}

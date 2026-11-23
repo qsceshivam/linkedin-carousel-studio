@@ -144,8 +144,7 @@ export const CarouselPreview: React.FC<CarouselPreviewProps> = ({
       {/* Main Slide Stage */}
       <div
         ref={containerRef}
-        className="relative flex flex-1 items-center justify-center overflow-hidden py-4 select-none"
-        style={{ minHeight: '520px' }}
+        className="relative flex flex-1 items-center justify-center overflow-hidden py-2 sm:py-4 select-none min-h-[420px] sm:min-h-[520px]"
       >
         {/* Navigation Arrows */}
         <button
