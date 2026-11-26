@@ -14,6 +14,7 @@ import { ProModal } from '@/components/ProModal';
 import { ExportModal } from '@/components/ExportModal';
 import { SlideView } from '@/components/SlideView';
 import { exportCarouselToPDF } from '@/lib/pdf-exporter';
+import { FREE_DAILY_EXPORT_LIMIT } from '@/lib/payment-config';
 
 export default function Home() {
   const [carousel, setCarousel] = useState<CarouselData>(INITIAL_CAROUSEL);
@@ -37,6 +38,7 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isProOpen, setIsProOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [limitReached, setLimitReached] = useState<boolean>(false);
 
   // Initialize from localStorage & Payment Return
   useEffect(() => {
@@ -44,19 +46,21 @@ export default function Home() {
     if (savedKey) setApiKey(savedKey);
 
     const savedPro = localStorage.getItem('carousel_is_pro');
-    if (savedPro === 'true') setIsPro(true);
+    const proExpiresAt = localStorage.getItem('carousel_pro_expires_at');
+    if (savedPro === 'true') {
+      if (!proExpiresAt || Number(proExpiresAt) > Date.now()) {
+        setIsPro(true);
+      } else {
+        localStorage.removeItem('carousel_is_pro');
+        localStorage.removeItem('carousel_pro_expires_at');
+      }
+    }
 
-    // Auto-unlock if returning from Razorpay / LemonSqueezy checkout (?payment=success or ?session=pro)
+    // Auto-unlock if returning from Razorpay checkout (?payment=success or ?session=pro)
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment') === 'success' || urlParams.get('session') === 'pro') {
-        setIsPro(true);
-        localStorage.setItem('carousel_is_pro', 'true');
-        confetti({
-          particleCount: 120,
-          spread: 90,
-          origin: { y: 0.5 },
-        });
+        handleUnlockPro(24 * 365);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
@@ -71,17 +75,17 @@ export default function Home() {
     }
   };
 
-  const handleTogglePro = () => {
-    const nextVal = !isPro;
-    setIsPro(nextVal);
-    localStorage.setItem('carousel_is_pro', String(nextVal));
-    if (nextVal) {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-    }
+  const handleUnlockPro = (durationHours: number) => {
+    const expiresAt = Date.now() + durationHours * 60 * 60 * 1000;
+    setIsPro(true);
+    setLimitReached(false);
+    localStorage.setItem('carousel_is_pro', 'true');
+    localStorage.setItem('carousel_pro_expires_at', String(expiresAt));
+    confetti({
+      particleCount: 100,
+      spread: 80,
+      origin: { y: 0.5 },
+    });
   };
 
   // Slide Manipulation Handlers
@@ -167,6 +171,17 @@ export default function Home() {
 
   // High-Resolution 4:5 PDF Export
   const handleExport = async () => {
+    // Check daily free limit if not Pro
+    const todayKey = `carousel_exports_${new Date().toISOString().slice(0, 10)}`;
+    if (!isPro) {
+      const usedToday = Number(localStorage.getItem(todayKey) || '0');
+      if (usedToday >= FREE_DAILY_EXPORT_LIMIT) {
+        setLimitReached(true);
+        setIsProOpen(true);
+        return;
+      }
+    }
+
     const exportNodes = document.querySelectorAll<HTMLElement>('.export-slide-target > div');
     const nodesToExport = exportNodes.length > 0
       ? Array.from(exportNodes)
@@ -199,6 +214,11 @@ export default function Home() {
           });
         }
       );
+
+      if (!isPro) {
+        const usedToday = Number(localStorage.getItem(todayKey) || '0');
+        localStorage.setItem(todayKey, String(usedToday + 1));
+      }
 
       confetti({
         particleCount: 100,
@@ -280,6 +300,11 @@ export default function Home() {
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
             onReset={() => setCarousel(INITIAL_CAROUSEL)}
+            isPro={isPro}
+            onOpenPro={() => {
+              setLimitReached(false);
+              setIsProOpen(true);
+            }}
           />
         </section>
 
@@ -336,9 +361,13 @@ export default function Home() {
 
       <ProModal
         isOpen={isProOpen}
-        onClose={() => setIsProOpen(false)}
+        onClose={() => {
+          setIsProOpen(false);
+          setLimitReached(false);
+        }}
         isPro={isPro}
-        onTogglePro={handleTogglePro}
+        onUnlockPro={handleUnlockPro}
+        limitReached={limitReached}
       />
 
       <ExportModal

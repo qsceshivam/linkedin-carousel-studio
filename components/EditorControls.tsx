@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ThemeId, CreatorProfile, FontStyle } from '@/types/carousel';
 import { THEMES } from '@/lib/themes';
+import { PRO_THEME_IDS, PRO_FONT_STYLES } from '@/lib/payment-config';
 import {
   Wand2,
   Palette,
@@ -13,6 +14,7 @@ import {
   Upload,
   RefreshCw,
   Type,
+  Crown,
 } from 'lucide-react';
 
 interface EditorControlsProps {
@@ -31,6 +33,8 @@ interface EditorControlsProps {
   onGenerate: () => void;
   isGenerating: boolean;
   onReset: () => void;
+  isPro: boolean;
+  onOpenPro: () => void;
 }
 
 export const TEST_EXAMPLES = [
@@ -84,6 +88,8 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
   onGenerate,
   isGenerating,
   onReset,
+  isPro,
+  onOpenPro,
 }) => {
   const [activeTab, setActiveTab] = useState<'prompt' | 'theme' | 'creator'>('prompt');
 
@@ -254,20 +260,34 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                   { id: 'sans', label: 'Modern Sans', preview: 'Inter / Crisp' },
                   { id: 'serif', label: 'Editorial', preview: 'Playfair / Luxury' },
                   { id: 'mono', label: 'Tech Mono', preview: 'Code / Systems' },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => onFontStyleChange(f.id as FontStyle)}
-                    className={`rounded-xl border p-2 text-center transition-all ${
-                      fontStyle === f.id
-                        ? 'border-blue-500 bg-blue-500/15 text-blue-300'
-                        : 'border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="text-xs font-bold">{f.label}</div>
-                    <div className="text-[9px] text-slate-500">{f.preview}</div>
-                  </button>
-                ))}
+                ].map((f) => {
+                  const isLocked = !isPro && (PRO_FONT_STYLES as readonly string[]).includes(f.id);
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        if (isLocked) {
+                          onOpenPro();
+                        } else {
+                          onFontStyleChange(f.id as FontStyle);
+                        }
+                      }}
+                      className={`relative rounded-xl border p-2 text-center transition-all ${
+                        fontStyle === f.id
+                          ? 'border-blue-500 bg-blue-500/15 text-blue-300'
+                          : 'border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-800'
+                      }`}
+                    >
+                      {isLocked && (
+                        <span className="absolute -top-1.5 right-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[8px] font-black text-slate-950">
+                          PRO
+                        </span>
+                      )}
+                      <div className="text-xs font-bold">{f.label}</div>
+                      <div className="text-[9px] text-slate-500">{f.preview}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -277,42 +297,55 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                 8 Curated High-Converting Themes
               </span>
               <div className="space-y-2">
-                {Object.values(THEMES).map((th) => (
-                  <button
-                    key={th.id}
-                    onClick={() => onThemeChange(th.id)}
-                    className={`w-full flex items-center justify-between rounded-xl border p-2.5 transition-all ${
-                      themeId === th.id
-                        ? 'border-blue-500 bg-slate-800/80 shadow-md ring-1 ring-blue-500'
-                        : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/40'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Theme Preview Dot/Swatch */}
-                      <div
-                        className="h-9 w-9 rounded-xl border flex items-center justify-center shadow-inner shrink-0"
-                        style={{
-                          background: th.bg,
-                          borderColor: th.borderColor,
-                        }}
-                      >
+                {Object.values(THEMES).map((th) => {
+                  const isLocked = !isPro && (PRO_THEME_IDS as readonly string[]).includes(th.id);
+                  return (
+                    <button
+                      key={th.id}
+                      onClick={() => {
+                        if (isLocked) {
+                          onOpenPro();
+                        } else {
+                          onThemeChange(th.id);
+                        }
+                      }}
+                      className={`w-full flex items-center justify-between rounded-xl border p-2.5 transition-all ${
+                        themeId === th.id
+                          ? 'border-blue-500 bg-slate-800/80 shadow-md ring-1 ring-blue-500'
+                          : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Theme Preview Dot/Swatch */}
                         <div
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: th.accentColor }}
-                        />
+                          className="h-9 w-9 rounded-xl border flex items-center justify-center shadow-inner shrink-0"
+                          style={{
+                            background: th.bg,
+                            borderColor: th.borderColor,
+                          }}
+                        >
+                          <div
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: th.accentColor }}
+                          />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-xs font-bold text-slate-200">{th.name}</div>
+                          <div className="text-[10px] text-slate-400">{th.category} Style</div>
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <div className="text-xs font-bold text-slate-200">{th.name}</div>
-                        <div className="text-[10px] text-slate-400">{th.category} Style</div>
-                      </div>
-                    </div>
-                    {themeId === th.id && (
-                      <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-400">
-                        Active
-                      </span>
-                    )}
-                  </button>
-                ))}
+                      {isLocked ? (
+                        <span className="flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          <Crown className="h-2.5 w-2.5" /> PRO
+                        </span>
+                      ) : themeId === th.id ? (
+                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-400">
+                          Active
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
