@@ -280,7 +280,7 @@ export const SlideView: React.FC<SlideViewProps> = ({
             >
               <span className="opacity-90">⚡ Made with</span>
               <span className="underline decoration-dotted font-extrabold" style={{ color: theme.accentColor }}>
-                CarouselStudio.com
+                carouselstudio-seven.vercel.app
               </span>
             </div>
           ) : (
